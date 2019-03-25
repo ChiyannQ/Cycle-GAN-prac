@@ -4,7 +4,7 @@
 from options import My_train_opts
 from data import create_dataset
 from model import create_model
-
+from util.visualizer import Visualizer
 
 # begin
 if _name_ == '_main_':
