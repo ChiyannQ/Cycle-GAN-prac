@@ -1,20 +1,4 @@
-"""Model class template
 
-This module provides a template for users to implement custom models.
-You can specify '--model template' to use this model.
-The class name should be consistent with both the filename and its model option.
-The filename should be <model>_dataset.py
-The class name should be <Model>Dataset.py
-It implements a simple image-to-image translation baseline based on regression loss.
-Given input-output pairs (data_A, data_B), it learns a network netG that can minimize the following L1 loss:
-    min_<netG> ||netG(data_A) - data_B||_1
-You need to implement the following functions:
-    <modify_commandline_options>:　Add model-specific options and rewrite default values for existing options.
-    <__init__>: Initialize this model class.
-    <set_input>: Unpack input data and perform data pre-processing.
-    <forward>: Run forward pass. This will be called by both <optimize_parameters> and <test>.
-    <optimize_parameters>: Update network weights; it will be called in every training iteration.
-"""
 import torch
 from .base_model import BaseModel
 from . import networks
@@ -98,8 +82,8 @@ class DCGANModel(BaseModel):
             input: a dictionary that contains the data itself and its metadata information.
         """
         AtoB = self.opt.direction == 'AtoB'  # use <direction> to swap data_A and data_B
-        self.data_A = input['A' if AtoB else 'B'].to(self.device)  # get image data A
-        self.data_B = input['B' if AtoB else 'A'].to(self.device)  # get image data B
+        self.real_A = input['A' if AtoB else 'B'].to(self.device)  # get image data A
+        self.real_B = input['B' if AtoB else 'A'].to(self.device)  # get image data B
         self.image_paths = input['A_paths' if AtoB else 'B_paths']  # get image paths
 
     def forward(self):
@@ -130,9 +114,9 @@ class DCGANModel(BaseModel):
     def backward_D_B(self):
         """Calculate GAN loss for discriminator D_A"""
         fake_B = self.fake_B_pool.query(self.fake_B)
-        self.loss_D_A = self.backward_D_basic(self.netD_B, self.real_B, fake_B)
+        self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_B, fake_B)
         
-    def backwar_G_A(self:
+    def backward_G_A(self:
         self.loss_G_A = self.criterionGAN(self.netD_B(self.fake_B), True)
         self.loss_G = self.loss_G_A
         self.loss_G.backward()
@@ -143,7 +127,7 @@ class DCGANModel(BaseModel):
         """Update network weights; it will be called in every training iteration."""
         self.forward()               # first call forward to calculate intermediate results
         self.set_requires_grad([self.netD_B], False)
-        self.optimizer.zero_grad()   # clear network G's existing gradients
+        self.optimizer_G.zero_grad()   # clear network G's existing gradients
         self.backward_G_A()              # calculate gradients for network G
         self.optimizer_G.step()        # update gradients for network G
         #D
